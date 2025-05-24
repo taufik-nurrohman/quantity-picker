@@ -1,0 +1,32 @@
+extends ../_index.pug
+
+block state
+  - const scripts = ['../index.min.js']
+  - const styles = ['../index.min.css']
+  - const title = 'Quantity Picker'
+
+block script
+  script
+    | const picker = new QuantityPicker(document.querySelector('input'));
+
+block style
+  style
+    | .quantity-picker__text {
+    |   min-width: 3em;
+    | }
+
+block content
+  main
+    form(method='get' target='_blank')
+      p asdf
+      p
+        = 'asdf '
+        input(min='0' name='test' step='1' type='number' value='1')
+        = ' asdf'
+      p asdf
+      p
+        button(onclick='this.disabled = true; this.nextElementSibling.disabled = false; picker.detach(); return false;' type='button') Detach
+        = ' '
+        button(disabled onclick='this.disabled = true; this.previousElementSibling.disabled = false; picker.attach(); return false;' type='button') Attach
+        = ' '
+        button(type='submit') Submit
