@@ -3,17 +3,11 @@
   "browser": "index.min.js",
   "bugs": "https://github.com/taufik-nurrohman/quantity-picker/issues",
   "dependencies": {
-    "@taufik-nurrohman/document": "^1.5.3",
-    "@taufik-nurrohman/event": "^1.0.1",
     "@taufik-nurrohman/f": "^1.3.8",
     "@taufik-nurrohman/from": "^1.1.0",
-    "@taufik-nurrohman/has": "^1.0.0",
     "@taufik-nurrohman/hook": "^1.2.2",
     "@taufik-nurrohman/is": "^1.0.5",
-    "@taufik-nurrohman/pattern": "^1.0.1",
-    "@taufik-nurrohman/selection": "^1.1.0",
-    "@taufik-nurrohman/tick": "^2.1.0",
-    "@taufik-nurrohman/to": "^1.2.0"
+    "@taufik-nurrohman/number-picker": "^1.0.3"
   },
   "description": "A number picker variant for quantity.",
   "devDependencies": {

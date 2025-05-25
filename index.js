@@ -309,6 +309,9 @@
             of [k] = v;
         }), of;
     };
+    var setPrototype = function setPrototype(of, value) {
+        return of.prototype = value;
+    };
     var setReference = function setReference(key, value) {
         return setValueInMap(key, value, references);
     };
@@ -834,34 +837,56 @@
         letError = _delay2[0],
         letErrorAbort = _delay2[1];
     var setError = function setError(picker) {
-        setAria(picker.mask, TOKEN_INVALID, true);
+        var mask = picker.mask,
+            state = picker.state,
+            time = state.time,
+            error = time.error;
+        if (isInteger(error) && error > 0) {
+            setAria(mask, TOKEN_INVALID, true);
+        }
     };
     var _delay3 = delay(function (picker) {
             var _mask = picker._mask,
                 input = _mask.input;
-            (picker[TOKEN_VALUE] = getText(input)) && selectTo(input);
-        }),
-        _delay4 = _maybeArrayLike(_slicedToArray, _delay3, 1),
-        setValuePicker = _delay4[0];
-    var _delay5 = delay(function (picker) {
-            var _mask = picker._mask,
-                input = _mask.input;
             toggleHintByValue(picker, getText(input, 0));
         }),
-        _delay6 = _maybeArrayLike(_slicedToArray, _delay5, 1),
-        toggleHint = _delay6[0];
+        _delay4 = _maybeArrayLike(_slicedToArray, _delay3, 1),
+        toggleHint = _delay4[0];
     var toggleHintByValue = function toggleHintByValue(picker, value) {
         var _mask = picker._mask,
             hint = _mask.hint;
         value ? setStyle(hint, TOKEN_VISIBILITY, 'hidden') : letStyle(hint, TOKEN_VISIBILITY);
     };
-    var name = 'QuantityPicker';
-    var _repeat = repeat(function (picker, step) {
-            cycleValue(this, picker, step, repeatStop);
+    var name$1 = 'NumberPicker';
+    var _repeat = repeat(function ($, picker, step) {
+            cycleValue($, picker, step, repeatStop);
         }),
         _repeat2 = _maybeArrayLike(_slicedToArray, _repeat, 2),
         repeatStart = _repeat2[0],
         repeatStop = _repeat2[1];
+
+    function checkValue(picker) {
+        var _mask = picker._mask,
+            max = picker.max,
+            min = picker.min,
+            step = picker.step,
+            input = _mask.input,
+            v,
+            value = +(v = getText(input)); // Get from the current input
+        if (!isNumber(value)) {
+            return picker.fire('not.number', [v]), 0;
+        }
+        if (0 !== value % step) {
+            return picker.fire('not.step', [value, step]), 0;
+        }
+        if (value < min) {
+            return picker.fire('min.number', [value, min]), 0;
+        }
+        if (value > max) {
+            return picker.fire('max.number', [value, max]), 0;
+        }
+        return picker.fire('is.number', [value]), 1;
+    }
 
     function cycleValue($, picker, step, onStop, onStep) {
         var _active = picker._active,
@@ -918,11 +943,14 @@
 
     function onBeforeInputTextInput(e) {
         var $ = this,
-            picker = getReference($);
-        picker.step;
-        var data = e.data,
+            picker = getReference($),
+            step = picker.step,
+            data = e.data,
             inputType = e.inputType;
-        var characters = '0123456789';
+        var characters = '-0123456789';
+        if (0 !== step % 1) {
+            characters += '.';
+        }
         if ('insertText' === inputType && !hasValue(data, characters)) {
             offEventDefault(e);
         }
@@ -982,13 +1010,8 @@
         letErrorAbort();
         var $ = this,
             picker = getReference($),
-            mask = picker.mask,
-            max = picker.max,
-            min = picker.min,
-            step = picker.step,
-            value = +getText($);
-        // Take from the current text
-        if (!isNumber(value) || 0 !== value % step || value > max || value < min) {
+            mask = picker.mask;
+        if (!checkValue(picker)) {
             setError(picker);
         }
         offEvent(EVENT_MOUSE_DOWN, mask, onPointerDownMask);
@@ -1001,24 +1024,17 @@
             picker = getReference($),
             _active = picker._active,
             _fix = picker._fix;
-        if (_fix) {
-            return focusTo(picker), offEventDefault(e);
-        }
-        if (!_active) {
+        if (!_active || _fix) {
+            if (_fix) {
+                focusTo(picker);
+            }
             return offEventDefault(e);
         }
         var inputType = e.inputType,
-            _mask = picker._mask,
             mask = picker.mask,
-            max = picker.max,
-            min = picker.min,
             self = picker.self,
             state = picker.state,
-            step = picker.step,
-            input = _mask.input,
             strict = state.strict,
-            time = state.time,
-            error = time.error,
             v,
             value = +(v = getText($));
         // Take from the current text
@@ -1028,23 +1044,13 @@
             toggleHintByValue(picker, 1);
         }
         if ('-' === v || '.' === v);
-        else if (!isNumber(value) || 0 !== value % step || value > max || value < min) {
+        else if (!checkValue(picker)) {
             setError(picker);
-            if (!isNumber(value)) {
-                picker.fire('not.quantity', [v]);
-            } else if (0 !== value % step) {
-                picker.fire('not.step', [value]);
-            } else if (value > max) {
-                picker.fire('max.quantity', [value, max]);
-            } else if (value < min) {
-                picker.fire('min.quantity', [value, min]);
-            }
             if (strict) {
-                return letError(isInteger(error) && error > 0 ? error : 0, picker), setText(input, picker[TOKEN_VALUE]), focusTo(input), selectTo(input, 1);
+                return;
             }
         } else {
             letError(0, picker);
-            picker.fire('is.quantity', [value]);
         }
         if (v && '-' !== v && '.' !== v) {
             setAria(mask, TOKEN_VALUENOW, v);
@@ -1065,10 +1071,10 @@
             picker = getReference($),
             _active = picker._active,
             _fix = picker._fix;
-        if (_fix) {
-            return focusTo(picker), offEventDefault(e);
-        }
-        if (!_active) {
+        if (!_active || _fix) {
+            if (_fix) {
+                focusTo(picker);
+            }
             return offEventDefault(e);
         }
         var key = e.key,
@@ -1110,10 +1116,10 @@
             picker = getReference($),
             _active = picker._active,
             _fix = picker._fix;
-        if (_fix) {
-            return focusTo(picker), offEventDefault(e);
-        }
-        if (!_active) {
+        if (!_active || _fix) {
+            if (_fix) {
+                focusTo(picker);
+            }
             return offEventDefault(e);
         }
         var key = e.key,
@@ -1153,8 +1159,12 @@
     function onKeyDownTextInput(e) {
         var $ = this,
             picker = getReference($),
-            _active = picker._active;
-        if (!_active) {
+            _active = picker._active,
+            _fix = picker._fix;
+        if (!_active || _fix) {
+            if (_fix) {
+                focusTo(picker);
+            }
             return;
         }
         var key = e.key,
@@ -1199,17 +1209,28 @@
         var $ = this,
             picker = getReference($),
             mask = picker.mask,
-            self = picker.self,
-            v;
-        setValuePicker(1, picker), insertAtSelection($, e.clipboardData.getData('text/plain'));
-        delay(function () {
-            setValue(self, v = getText($));
-            if (v && '-' !== v && '.' !== v) {
-                setAria(mask, TOKEN_VALUENOW, v);
-            } else {
-                letAria(mask, TOKEN_VALUENOW);
-            }
-        })[0](1);
+            state = picker.state,
+            time = state.time,
+            error = time.error,
+            v = getText($),
+            vv,
+            wasError;
+        insertAtSelection($, e.clipboardData.getData('text/plain'));
+        if (!isNumber(+(vv = getText($)))) {
+            wasError = true;
+            setText($, null !== v ? v : ""); // Restore previous text
+        }
+        picker[TOKEN_VALUE] = v = getText($);
+        if (v) {
+            setAria(mask, TOKEN_VALUENOW, v);
+        } else {
+            letAria(mask, TOKEN_VALUENOW);
+        }
+        focusTo($), selectTo($);
+        if (wasError) {
+            letErrorAbort(), setError(picker), letError(isInteger(error) && error > 0 ? error : 0, picker);
+            picker.fire('not.number', [vv]);
+        }
     }
 
     function onPointerDownMask(e) {
@@ -1218,10 +1239,10 @@
             picker = getReference($),
             _active = picker._active,
             _fix = picker._fix;
-        if (_fix) {
-            return focusTo(picker);
-        }
-        if (!_active) {
+        if (!_active || _fix) {
+            if (_fix) {
+                focusTo(picker);
+            }
             return;
         }
         var _mask = picker._mask,
@@ -1263,7 +1284,7 @@
         cycleValue($, picker, -step, strict && function (picker) {
             picker[TOKEN_VALUE] = min, focusTo($);
         });
-        repeatStart.call($, repeat[0], repeat[1], picker, -step);
+        repeatStart(repeat[0], repeat[1], $, picker, -step);
         onEvent(EVENT_MOUSE_UP, R, onPointerUpRoot);
         onEvent(EVENT_TOUCH_END, R, onPointerUpRoot);
     }
@@ -1281,7 +1302,7 @@
         cycleValue($, picker, step, strict && function (picker) {
             picker[TOKEN_VALUE] = max, focusTo($);
         });
-        repeatStart.call($, repeat[0], repeat[1], picker, step);
+        repeatStart(repeat[0], repeat[1], $, picker, step);
         onEvent(EVENT_MOUSE_UP, R, onPointerUpRoot);
         onEvent(EVENT_TOUCH_END, R, onPointerUpRoot);
     }
@@ -1300,17 +1321,10 @@
     function onSubmitForm(e) {
         var $ = this,
             picker = getReference($),
-            max = picker.max,
-            min = picker.min,
-            self = picker.self,
-            value = picker.value;
-        value = +value;
-        if (value < min) {
-            onInvalidSelf.call(self);
-            picker.fire('min.quantity', [value, min]), offEventDefault(e);
-        } else if (value > max) {
-            onInvalidSelf.call(self);
-            picker.fire('max.quantity', [value, max]), offEventDefault(e);
+            self = picker.self;
+        picker.value;
+        if (!checkValue(picker)) {
+            onInvalidSelf.call(self), offEventDefault(e);
         }
     }
 
@@ -1341,28 +1355,28 @@
         }
     }
 
-    function QuantityPicker(self, state) {
+    function NumberPicker(self, state) {
         var $ = this;
         if (!self) {
             return $;
         }
-        // Return new instance if `QuantityPicker` was called without the `new` operator
-        if (!isInstance($, QuantityPicker)) {
-            return new QuantityPicker(self, state);
+        // Return new instance if `NumberPicker` was called without the `new` operator
+        if (!isInstance($, NumberPicker)) {
+            return new NumberPicker(self, state);
         }
-        setReference(self, hook($, QuantityPicker._));
-        return $.attach(self, _fromStates({}, QuantityPicker.state, isBoolean(state) ? {
+        setReference(self, hook($, NumberPicker._));
+        return $.attach(self, _fromStates({}, NumberPicker.state, isBoolean(state) ? {
             strict: state
         } : state || {}));
     }
-    QuantityPicker.from = function (self, state) {
-        return new QuantityPicker(self, state);
+    NumberPicker.from = function (self, state) {
+        return new NumberPicker(self, state);
     };
-    QuantityPicker.of = getReference;
-    QuantityPicker.state = {
+    NumberPicker.of = getReference;
+    NumberPicker.state = {
         'max': null,
         'min': null,
-        'n': 'quantity-picker',
+        'n': 'number-picker',
         'step': null,
         'strict': false,
         'time': {
@@ -1371,18 +1385,19 @@
         },
         'with': []
     };
-    QuantityPicker.version = '1.0.0';
-    setObjectAttributes(QuantityPicker, {
+    NumberPicker.version = '1.0.3';
+    setObjectAttributes(NumberPicker, {
         name: {
-            value: name
+            value: name$1
         }
     }, 1);
-    setObjectAttributes(QuantityPicker, {
+    setObjectAttributes(NumberPicker, {
         active: {
             get: function get() {
                 return this._active;
             },
             set: function set(value) {
+                selectToNone();
                 var $ = this,
                     _mask = $._mask,
                     mask = $.mask,
@@ -1407,13 +1422,14 @@
                 return this._fix;
             },
             set: function set(value) {
+                selectToNone();
                 var $ = this,
                     _mask = $._mask,
                     mask = $.mask,
                     self = $.self,
                     input = _mask.input,
                     v = !!value;
-                $._active = !($._fix = self[TOKEN_READ_ONLY] = v);
+                self[TOKEN_READ_ONLY] = $._fix = v;
                 if (v) {
                     letAttribute(input, TOKEN_CONTENTEDITABLE);
                     setAria(input, TOKEN_READONLY, true);
@@ -1477,8 +1493,9 @@
             },
             set: function set(value) {
                 var $ = this,
-                    _active = $._active;
-                if (!_active) {
+                    _active = $._active,
+                    _fix = $._fix;
+                if (!_active || _fix) {
                     return $;
                 }
                 var _mask = $._mask,
@@ -1495,40 +1512,26 @@
             set: function set(value) {
                 var $ = this,
                     _active = $._active,
-                    _fix = $._fix,
                     v;
-                if (!_active && !_fix) {
+                if (!_active) {
                     return $;
                 }
                 value = +(v = (value != null ? value : "") + "");
                 var _mask = $._mask,
-                    max = $.max,
-                    min = $.min,
                     self = $.self,
                     state = $.state,
-                    step = $.step,
                     input = _mask.input,
                     strict = state.strict,
                     time = state.time,
                     error = time.error;
                 setText(input, v), toggleHintByValue($, v);
-                if (!isNumber(value) || 0 !== value % step || value > max || value < min) {
+                if (!checkValue($)) {
                     setError($);
-                    if (!isNumber(value)) {
-                        $.fire('not.quantity', [v]);
-                    } else if (0 !== value % step) {
-                        $.fire('not.step', [v]);
-                    } else if (value > max) {
-                        $.fire('max.quantity', [value, max]);
-                    } else if (value < min) {
-                        $.fire('min.quantity', [value, min]);
-                    }
                     if (strict) {
-                        return letError(isInteger(error) && error > 0 ? error : 0, picker), setText(input, $[TOKEN_VALUE]), $;
+                        return letError(isInteger(error) && error > 0 ? error : 0, $), setText(input, $[TOKEN_VALUE]), $;
                     }
                 } else {
                     letError(0, $);
-                    $.fire('is.quantity', [value]);
                 }
                 return setValue(self, v), $.fire('change', ["" !== v ? v : null]);
             }
@@ -1538,13 +1541,14 @@
                 return this._vital;
             },
             set: function set(value) {
+                selectToNone();
                 var $ = this,
                     _mask = $._mask,
                     mask = $.mask,
                     self = $.self,
                     input = _mask.input,
                     v = !!value;
-                self[TOKEN_REQUIRED] = v;
+                self[TOKEN_REQUIRED] = $._vital = v;
                 if (v) {
                     setAria(input, TOKEN_REQUIRED, true);
                     setAria(mask, TOKEN_REQUIRED, true);
@@ -1556,7 +1560,7 @@
             }
         }
     });
-    QuantityPicker._ = setObjectMethods(QuantityPicker, {
+    NumberPicker._ = setObjectMethods(NumberPicker, {
         attach: function attach(self, state) {
             var $ = this;
             self = self || $.self;
@@ -1578,7 +1582,7 @@
                 theInputPlaceholder = self.placeholder || theInputMin,
                 theInputStep = self.step,
                 theInputValue = getValue(self);
-            $._active = !isDisabledSelf && !isReadOnlySelf;
+            $._active = !isDisabledSelf;
             $._fix = isReadOnlySelf;
             $._vital = isRequiredSelf;
             var stepDown = setElement('span', {
@@ -1719,7 +1723,7 @@
             if (isSet(state) && isArray(state.with)) {
                 forEachArray(state.with, function (v, k) {
                     if (isString(v)) {
-                        v = QuantityPicker[v];
+                        v = NumberPicker[v];
                     }
                     // `const Extension = function (self, state = {}) {}`
                     if (isFunction(v)) {
@@ -1780,7 +1784,7 @@
             if (isArray(state.with)) {
                 forEachArray(state.with, function (v, k) {
                     if (isString(v)) {
-                        v = QuantityPicker[v];
+                        v = NumberPicker[v];
                     }
                     if (isObject(v) && isFunction(v.detach)) {
                         v.detach.call($, self, state);
@@ -1800,9 +1804,8 @@
         },
         focus: function focus(mode) {
             var $ = this,
-                _active = $._active,
-                _fix = $._fix;
-            if (!_active && !_fix) {
+                _active = $._active;
+            if (!_active) {
                 return $;
             }
             var _mask = $._mask,
@@ -1811,14 +1814,105 @@
         },
         reset: function reset(focus, mode) {
             var $ = this,
-                _active = $._active,
-                _fix = $._fix;
-            if (!_active && !_fix) {
+                _active = $._active;
+            if (!_active) {
                 return $;
             }
             $[TOKEN_VALUE] = $['_' + TOKEN_VALUE];
             return focus ? $.focus(mode) : $;
         }
     });
+    var name = 'QuantityPicker';
+
+    function QuantityPicker(self, state) {
+        var $ = this;
+        if (!self) {
+            return $;
+        }
+        // Return new instance if `QuantityPicker` was called without the `new` operator
+        if (!isInstance($, QuantityPicker)) {
+            return new QuantityPicker(self, state);
+        }
+        return hook($, QuantityPicker._).attach(self, _fromStates({}, QuantityPicker.state, isBoolean(state) ? {
+            strict: state
+        } : state || {}));
+    }
+    setPrototype(QuantityPicker, Object.create(NumberPicker._, {
+        constructor: {
+            configurable: true,
+            enumerable: false,
+            value: QuantityPicker,
+            writable: true
+        },
+        // Must be an integer
+        max: {
+            get: function get() {
+                var _this$state = this.state,
+                    max = _this$state.max,
+                    step = _this$state.step;
+                step = step != null ? step : 1;
+                return Infinity === (max = +max) || isInteger(max) && 0 === max % step ? max : Infinity;
+            },
+            set: function set(value) {
+                var $ = this,
+                    state = $.state,
+                    step = state.step;
+                step = step != null ? step : 1;
+                return state.max = isInteger(value = +value) && 0 === value % step ? value : Infinity, $;
+            }
+        },
+        // Must be an integer greater than or equal to `0`
+        min: {
+            get: function get() {
+                var _this$state2 = this.state,
+                    min = _this$state2.min,
+                    step = _this$state2.step;
+                step = step != null ? step : 1;
+                return isInteger(min = +min) && 0 === min % step && min >= 0 ? min : 0;
+            },
+            set: function set(value) {
+                var $ = this,
+                    state = $.state,
+                    step = state.step;
+                step = step != null ? step : 1;
+                return state.min = isInteger(value = +value) && 0 === value % step && value >= 0 ? value : 0, $;
+            }
+        },
+        // Must be an integer
+        step: {
+            get: function get() {
+                var step = this.state.step;
+                return isInteger(step = +step) && step > 0 ? step : 1;
+            },
+            set: function set(value) {
+                var $ = this,
+                    state = $.state;
+                return state.step = isInteger(value = +value) && value > 0 ? value : 1, $;
+            }
+        }
+    }));
+    QuantityPicker.from = function (self, state) {
+        return new QuantityPicker(self, state);
+    };
+    QuantityPicker.of = NumberPicker.of;
+    QuantityPicker.state = {
+        'max': null,
+        'min': null,
+        'n': 'quantity-picker',
+        'step': null,
+        'strict': false,
+        'time': {
+            'error': 1000,
+            'repeat': [500, 50]
+        },
+        'with': []
+    };
+    QuantityPicker.version = '1.0.0';
+    setObjectAttributes(QuantityPicker, {
+        name: {
+            value: name
+        }
+    }, 1);
+    QuantityPicker._ = getPrototype(QuantityPicker);
     return QuantityPicker;
 }));
