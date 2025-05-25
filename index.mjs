@@ -79,10 +79,10 @@ QuantityPicker.of = NumberPicker.of;
 
 QuantityPicker.state = {
     'max': null,
-    'min': null,
+    'min': 0,
     'n': 'quantity-picker',
-    'step': null,
-    'strict': false,
+    'step': 1,
+    'strict': true,
     'time': {
         'error': 1000,
         'repeat': [500, 50]

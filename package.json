@@ -7,7 +7,7 @@
     "@taufik-nurrohman/from": "^1.1.0",
     "@taufik-nurrohman/hook": "^1.2.2",
     "@taufik-nurrohman/is": "^1.0.5",
-    "@taufik-nurrohman/number-picker": "^1.0.3"
+    "@taufik-nurrohman/number-picker": "^1.0.4"
   },
   "description": "A number picker variant for quantity.",
   "devDependencies": {
